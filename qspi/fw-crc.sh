@@ -14,12 +14,12 @@ out="$2"
 # https://reveng.sourceforge.io/crc-catalogue/all.htm
 # width=32 poly=0x04c11db7 init=0xffffffff refin=true refout=true xorout=0xffffffff check=0xcbf43926 residue=0xdebb20e3 name="CRC-32/ISO-HDLC"
 
-[[ "$(crc32 <(echo -n "123456789"))" == "cbf43926" ]] || { echo "CRC error"; exit 1; }
+[[ "$(./crc32.exe crc32_test.bin)" == "0xCBF43926 (9)" ]] || { echo "CRC error"; exit 1; }
 
 rm -f temp.bin
 cp "$file" temp.bin
 
-crc32 temp.bin | xxd -r -p >> temp.bin
+./crc32.exe temp.bin | head -c 10 |xxd -r -p >> temp.bin
 
 rm -f "$out"
 mv temp.bin "$out"
