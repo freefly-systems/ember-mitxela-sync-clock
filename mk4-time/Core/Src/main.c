@@ -145,6 +145,7 @@ struct {
 } next7seg;
 
 uint8_t decisec=0, centisec=0, millisec=0;
+uint32_t ext_count=0;
 
 float longitude=-9999, latitude=-9999;
 _Bool data_valid=0, had_pps=0, rtc_good=0, new_position=1;
@@ -1229,6 +1230,47 @@ void PPS_Init(void){
   SetPPS( &PPS );
 }
 
+void EXTI2_IRQHandler(void){__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_2);}
+
+// EXT falling edge
+void EXT(void)
+{
+  __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_2);
+
+  // clear systick flag if set?
+
+  if(countMode == COUNT_HIDDEN)
+  {
+    buffer_b[0]    =bCat0 | bLut[ (ext_count/100000000)%10 ];
+    buffer_b[1]    =bCat1 | bLut[ (ext_count/10000000 )%10 ];
+    buffer_b[2]    =bCat2 | bLut[ (ext_count/1000000  )%10 ];
+    buffer_b[3]    =bCat3 | bLut[ (ext_count/100000   )%10 ];
+    buffer_b[4]    =bCat4 | bLut[ (ext_count/10000    )%10 ];
+    buffer_c[0].low=        cLut[ (ext_count/1000     )%10 ];
+    buffer_c[1].low=        cLut[ (ext_count/100      )%10 ];
+    buffer_c[2].low=        cLut[ (ext_count/10       )%10 ];
+    buffer_c[3].low=        cLut[ (ext_count          )%10 ];
+  }
+
+  ext_count++;
+}
+
+void EXT_Init(void){
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /*Configure GPIO pin : PD2 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+
+  SetEXT( &EXT );
+}
+
 #define timetick() \
     millisec++; \
     if (millisec>=10) { \
@@ -1655,7 +1697,7 @@ void nextMode(_Bool reverse){
     SetPPS( &PPS_NoUpdate );
     colonAnimationStop()
     TIM2->CCR1 = 0; // specific to show_offset
-    TIM2->CCR2 = 300;
+    TIM2->CCR2 = 0;
   } else if (displayMode == MODE_COUNTDOWN) {
 
     if (config.countdown_to >= currentTime) {
@@ -1943,6 +1985,7 @@ int main(void)
 
   setPrecision();
   PPS_Init();
+  EXT_Init();
   HAL_UART_Receive_DMA(&huart1, nmea, sizeof(nmea));
 
 //#define MEASURE_LOOKUP_TIME
@@ -2759,6 +2802,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13|GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2

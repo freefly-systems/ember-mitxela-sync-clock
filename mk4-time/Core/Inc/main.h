@@ -228,6 +228,7 @@ void generateDACbuffer(uint16_t * buf);
 void PPS(void);
 void PPS_NoUpdate(void);
 void PPS_Countdown(void);
+void EXT(void);
 void rxConfigString(char c);
 void monitor_vbus(void);
 
@@ -255,6 +256,7 @@ extern uint32_t __VECTORS_FLASH[];
 extern uint32_t __VECTORS_RAM[];
 #define SetSysTick(x) __VECTORS_RAM[ 16 + SysTick_IRQn ] = (uint32_t)x
 #define SetPPS(x)     __VECTORS_RAM[ 16 + EXTI9_5_IRQn ] = (uint32_t)x
+#define SetEXT(x)     __VECTORS_RAM[ 16 + EXTI2_IRQn   ] = (uint32_t)x
 
 #define SetVector(x,y) __VECTORS_RAM[ 16 + x ] = (uint32_t)y
 #define GetVector(x)   ((void (*)(void)) __VECTORS_RAM[ 16 + x ]
