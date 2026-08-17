@@ -300,6 +300,15 @@ void sendDate( _Bool now ){
     uart2_tx_buffer[9] ='e';
     uart2_tx_buffer[10]='t';
     break;
+  case MODE_FRAME_COUNT:
+    uart2_tx_buffer[1] ='f';
+    uart2_tx_buffer[2] ='r';
+    uart2_tx_buffer[3] ='a';
+    uart2_tx_buffer[4] ='m';
+    uart2_tx_buffer[5] ='e';
+    uart2_tx_buffer[6] ='s';
+    i=6;
+  break;
   case MODE_SHOW_TZ_NAME:
     if (loadedRulesString[0]) {
       char * zo = loadedRulesString;
@@ -896,6 +905,8 @@ void parseConfigString(char *key, char *value) {
     set_mode_enabled(MODE_TEXT, value);
   } else if (strcasecmp(key, "MODE_VBAT") == 0) {
     set_mode_enabled(MODE_VBAT, value);
+  } else if (strcasecmp(key, "MODE_FRAME_COUNT") == 0) {
+    set_mode_enabled(MODE_FRAME_COUNT, value);
   } else if (strcasecmp(key, "MODE_FIRMWARE_CRC") == 0) {
     set_mode_enabled(MODE_FIRMWARE_CRC_D, value);
     set_mode_enabled(MODE_FIRMWARE_CRC_T, value);
@@ -1250,6 +1261,9 @@ void EXT(void)
     buffer_c[1].low=        cLut[ (ext_count/100      )%10 ];
     buffer_c[2].low=        cLut[ (ext_count/10       )%10 ];
     buffer_c[3].low=        cLut[ (ext_count          )%10 ];
+
+    buffer_c[0].high= 0b11001110 ; // Avoid dot, XXX check how to do better
+
   }
 
   ext_count++;
@@ -1293,8 +1307,6 @@ void SysTick_CountUp_P3(void)
   buffer_c[3].low=cLut[millisec];
   buffer_c[2].low=cLut[centisec];
   buffer_c[1].low=cLut[decisec];
-
-
 
   HAL_IncTick();
 
@@ -1696,6 +1708,16 @@ void nextMode(_Bool reverse){
     SetSysTick( &SysTick_CountUp_NoUpdate );
     SetPPS( &PPS_NoUpdate );
     colonAnimationStop()
+    TIM2->CCR1 = 0; // specific to show_offset
+    TIM2->CCR2 = 300;
+  } else if (displayMode == MODE_FRAME_COUNT){
+    countMode = COUNT_HIDDEN;
+    SetSysTick( &SysTick_CountUp_NoUpdate );
+    SetPPS( &PPS_NoUpdate );
+    colonAnimationStop()
+
+    ext_count = 0;
+
     TIM2->CCR1 = 0; // specific to show_offset
     TIM2->CCR2 = 0;
   } else if (displayMode == MODE_COUNTDOWN) {
